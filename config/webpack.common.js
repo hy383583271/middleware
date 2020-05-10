@@ -7,9 +7,15 @@ const happyThreadPool = HappyPack.ThreadPool({size: os.cpus().length});
 
 const WorkBoxPlugin = require('workbox-webpack-plugin');
 
+
+const WasmModuleWebpackPlugin = require('wasm-module-webpack-plugin');
+
+
+const path = require('path');
+
 module.exports = {
     resolve: {
-        extensions: ['.tsx', '.ts', '.js', '.js', '.jsx', '.json'],
+        extensions: ['.tsx', '.ts', '.js', '.js', '.jsx', '.json', '.wasm'],
     },
     devtool: 'source-map',
     module: {
@@ -20,6 +26,23 @@ module.exports = {
                 loader: 'happypack/loader?id=happy-babel-ts',
                 exclude: /node_modules/,
             },
+            {
+                test: /\.wasm$/,
+                type: 'javascript/auto',
+                loader: 'wasm-loader'
+            },
+            {
+                test: /\.m?js$/,
+                exclude: /(node_modules|bower_components)/,
+                include: [path.join(process.cwd(), './client/src/wasm/math')],
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env'],
+                        plugins: ['@babel/plugin-syntax-dynamic-import', WasmModuleWebpackPlugin.BabelPlugin]
+                    }
+                }
+            }
         ],
     },
     plugins: [
@@ -37,6 +60,7 @@ module.exports = {
             verbose: true,
         }),
         new HardSourceWebpackPlugin(),
+        new WasmModuleWebpackPlugin.WebpackPlugin(),
         new HtmlWebpackPlugin({
             title: '配置页面title',
             template: paths.appHtml,
